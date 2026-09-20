@@ -1,19 +1,90 @@
 #!/usr/bin/env bash
 set -e
 
-REPO_URL="${REPO_URL:-}"
+# Navigate to the script's directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 PROJECT_DIR="vllm-inference-engine"
 
+# Load .env if present before reading repository settings
+if [ -f ".env" ]; then
+    set -a
+    . ./.env
+    set +a
+elif [ -f "../.env" ]; then
+    set -a
+    . ../.env
+    set +a
+elif [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    . "./$PROJECT_DIR/.env"
+    set +a
+fi
+
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+REPO_URL="${REPO_URL:-}"
+
+# Verify repository files exist or clone if needed
 if [ ! -f "app/main.py" ]; then
-    if [ -d "$PROJECT_DIR" ]; then
+    if [ -d "$PROJECT_DIR" ] && [ -f "$PROJECT_DIR/app/main.py" ]; then
         cd "$PROJECT_DIR"
     elif [ -n "$REPO_URL" ]; then
-        git clone "$REPO_URL" "$PROJECT_DIR" || true
-        if [ -d "$PROJECT_DIR" ]; then
+        if [ -n "$GITHUB_TOKEN" ]; then
+            CLEAN_REPO="${REPO_URL#*@}"
+            CLEAN_REPO="${CLEAN_REPO#https://}"
+            CLEAN_REPO="${CLEAN_REPO#http://}"
+            AUTH_REPO_URL="https://${GITHUB_TOKEN}@${CLEAN_REPO}"
+            echo "Cloning private repository using GITHUB_TOKEN from .env..."
+            git clone "$AUTH_REPO_URL" "$PROJECT_DIR" || true
+        else
+            echo "Cloning repository..."
+            git clone "$REPO_URL" "$PROJECT_DIR" || true
+        fi
+        if [ -d "$PROJECT_DIR" ] && [ -f "$PROJECT_DIR/app/main.py" ]; then
+            # Copy top-level .env into cloned directory if not present
+            if [ -f ".env" ] && [ ! -f "$PROJECT_DIR/.env" ]; then
+                cp .env "$PROJECT_DIR/.env"
+            fi
             cd "$PROJECT_DIR"
         fi
     fi
 fi
+
+# Re-source .env if present in the target directory
+if [ -f ".env" ]; then
+    set -a
+    . ./.env
+    set +a
+fi
+
+# Strict check for required application files
+if [ ! -f "app/main.py" ]; then
+    echo ""
+    echo "========================================================================"
+    echo " [ERROR] 'app/main.py' could not be found in $(pwd)!"
+    echo "========================================================================"
+    echo " If your repository is PRIVATE, add GITHUB_TOKEN and REPO_URL to .env:"
+    echo ""
+    echo "   GITHUB_TOKEN=ghp_yourPersonalAccessToken"
+    echo "   REPO_URL=https://github.com/your-username/your-repo.git"
+    echo ""
+    echo " Or export them directly before running:"
+    echo "   export GITHUB_TOKEN=\"ghp_xxx\""
+    echo "   export REPO_URL=\"https://github.com/your-username/your-repo.git\""
+    echo "   bash run_colab.sh"
+    echo ""
+    echo " Alternatively, zip and upload this directory directly to Colab:"
+    echo "   !unzip -q vllm-inference-engine.zip -d vllm-inference-engine"
+    echo "   %cd vllm-inference-engine"
+    echo "   !sed -i 's/\\r$//' run_colab.sh && bash run_colab.sh"
+    echo "========================================================================"
+    echo ""
+    exit 1
+fi
+
+# Ensure Python imports always find 'app' from project root
+export PYTHONPATH="$(pwd):${PYTHONPATH:-}"
 
 # Verify GPU
 nvidia-smi || true
@@ -66,6 +137,10 @@ CLOUDFLARE_TUNNEL_TOKEN=
 NGROK_ENABLED=false
 NGROK_AUTHTOKEN=
 NGROK_DOMAIN=
+
+# GitHub Private Repository Settings (Optional - for Colab bootstrap)
+GITHUB_TOKEN=
+REPO_URL=
 EOF
 fi
 
@@ -132,4 +207,4 @@ else
 fi
 
 # Run FastAPI vLLM Engine
-exec python3 -m uvicorn app.main:app --host "${HOST:-0.0.0.0}" --port "${PORT:-8006}"
+exec python3 -m uvicorn app.main:app --app-dir "$(pwd)" --host "${HOST:-0.0.0.0}" --port "${PORT:-8006}"

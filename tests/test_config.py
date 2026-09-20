@@ -19,6 +19,8 @@ def test_default_config_values():
     assert settings.HF_TOKEN is None
     assert settings.CACHE_DIR is None
     assert settings.DEFAULT_ENABLE_THINKING is True
+    assert settings.GITHUB_TOKEN is None
+    assert settings.REPO_URL is None
 
 def test_cors_parsing():
     s1 = Settings(CORS_ORIGINS="*")

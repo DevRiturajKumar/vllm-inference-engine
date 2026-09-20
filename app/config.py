@@ -40,7 +40,11 @@ class Settings(BaseSettings):
     NGROK_AUTHTOKEN: Optional[str] = None
     NGROK_DOMAIN: Optional[str] = None
 
-    @field_validator("MODEL_ID", "HF_TOKEN", "CACHE_DIR", "CLOUDFLARE_TUNNEL_TOKEN", "NGROK_AUTHTOKEN", "NGROK_DOMAIN", mode="before")
+    # GitHub Private Repository Settings (Optional - for Colab bootstrap)
+    GITHUB_TOKEN: Optional[str] = None
+    REPO_URL: Optional[str] = None
+
+    @field_validator("MODEL_ID", "HF_TOKEN", "CACHE_DIR", "CLOUDFLARE_TUNNEL_TOKEN", "NGROK_AUTHTOKEN", "NGROK_DOMAIN", "GITHUB_TOKEN", "REPO_URL", mode="before")
     @classmethod
     def empty_string_to_none(cls, v):
         if isinstance(v, str) and not v.strip():

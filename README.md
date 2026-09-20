@@ -21,11 +21,29 @@ Designed for instant deployment in **Google Colab** (NVIDIA T4, L4, A100) or sel
 ## 🚀 Quick Start
 
 ### Option A: Google Colab (One-Click Launch)
-In a new Colab notebook with a GPU runtime (T4, L4, or A100), run:
+
+**Method 1: Direct Zip Upload (Recommended — No Token Needed)**
+1. Zip this project folder locally: `zip -r vllm-engine.zip . -x "node_modules/*" ".git/*"`
+2. Upload `vllm-engine.zip` to Colab and execute:
+```bash
+!unzip -q vllm-engine.zip -d vllm-inference-engine
+%cd vllm-inference-engine
+!sed -i 's/\r$//' run_colab.sh && bash run_colab.sh
+```
+
+**Method 2: Private GitHub Repository Clone (via `.env`)**
+If cloning directly from your private GitHub repository in Colab, configure your `.env`:
+```ini
+GITHUB_TOKEN=ghp_yourPersonalAccessToken
+REPO_URL=https://github.com/your-username/vllm-inference-engine.git
+```
+Then run:
 ```bash
 !sed -i 's/\r$//' run_colab.sh && bash run_colab.sh
 ```
-When running, it prints:
+`run_colab.sh` reads `GITHUB_TOKEN` and `REPO_URL` directly from `.env`, clones the private repo, starts the Cloudflare Quick Tunnel, and boots the engine.
+
+When running, it automatically starts the Cloudflare Quick Tunnel and outputs:
 ```text
 ==================================================================
  🌐 Cloudflare Quick Tunnel Live: https://xxx-yyy-zzz.trycloudflare.com
@@ -219,6 +237,8 @@ curl -X POST https://<tunnel-id>.trycloudflare.com/admin/unload-model
 | `DEFAULT_MAX_TOKENS` | `512` | Default max completion tokens. |
 | `DEFAULT_TEMPERATURE` | `0.7` | Sampling temperature (0.0 for greedy). |
 | `DEFAULT_ENABLE_THINKING` | `true` | Parse `<think>` tags for reasoning models. |
+| `GITHUB_TOKEN` | `null` | GitHub Personal Access Token for private repo Colab cloning. |
+| `REPO_URL` | `null` | GitHub repository URL to clone in Colab. |
 
 ---
 
