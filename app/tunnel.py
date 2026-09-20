@@ -4,6 +4,13 @@ import subprocess
 from typing import Optional, List, Dict, Any
 from app.config import get_settings
 
+def is_cloudflared_running() -> bool:
+    try:
+        res = subprocess.run(["pgrep", "-f", "cloudflared tunnel"], capture_output=True)
+        return res.returncode == 0
+    except Exception:
+        return False
+
 def build_cloudflare_tunnel_command(token: str) -> List[str]:
     if not token or not token.strip():
         raise ValueError("Cloudflare tunnel token cannot be empty")
@@ -14,12 +21,15 @@ def start_cloudflare_tunnel(token: Optional[str] = None) -> Optional[subprocess.
     active_token = token or settings.CLOUDFLARE_TUNNEL_TOKEN
     if not active_token:
         return None
-    
+
+    if is_cloudflared_running():
+        return None
+
     cmd = build_cloudflare_tunnel_command(active_token)
     cloudflared_bin = shutil.which("cloudflared")
     if not cloudflared_bin:
         return None
-    
+
     return subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
@@ -65,8 +75,11 @@ def setup_tunnels() -> Dict[str, Any]:
         "ngrok_url": None,
     }
     if settings.CLOUDFLARE_TUNNEL_ENABLED and settings.CLOUDFLARE_TUNNEL_TOKEN:
-        proc = start_cloudflare_tunnel(settings.CLOUDFLARE_TUNNEL_TOKEN)
-        status_info["cloudflare_started"] = proc is not None
+        if is_cloudflared_running():
+            status_info["cloudflare_started"] = True
+        else:
+            proc = start_cloudflare_tunnel(settings.CLOUDFLARE_TUNNEL_TOKEN)
+            status_info["cloudflare_started"] = proc is not None
 
     if settings.NGROK_ENABLED and settings.NGROK_AUTHTOKEN:
         url = start_ngrok_tunnel(

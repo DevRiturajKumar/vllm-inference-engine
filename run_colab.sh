@@ -1,6 +1,6 @@
 set -e
 
-REPO_URL="${REPO_URL:-https://github.com/riturajkumar21/vllm-inference-engine.git}"
+REPO_URL="${REPO_URL:-https://github.com/DevRiturajKumar/vllm-inference-engine.git}"
 PROJECT_DIR="vllm-inference-engine"
 
 if [ ! -f "app/main.py" ]; then
@@ -17,11 +17,14 @@ fi
 nvidia-smi || true
 
 pip install --upgrade pip
+pip uninstall -y torchaudio || true
+
 if [ -f "requirements.txt" ]; then
     pip install -r requirements.txt
 else
     pip install "vllm>=0.6.0" fastapi "uvicorn[standard]" pydantic-settings transformers accelerate pyngrok
 fi
+pip uninstall -y torchaudio || true
 
 if [ ! -f ".env" ]; then
     cat << 'EOF' > .env

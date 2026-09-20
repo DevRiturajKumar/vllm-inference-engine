@@ -46,6 +46,7 @@ def test_start_cloudflare_tunnel_no_binary():
 def test_start_cloudflare_tunnel_with_binary():
     mock_proc = MagicMock()
     with patch("shutil.which", return_value="/usr/local/bin/cloudflared"), \
+         patch("app.tunnel.is_cloudflared_running", return_value=False), \
          patch("subprocess.Popen", return_value=mock_proc):
         proc = start_cloudflare_tunnel("token-abc")
         assert proc is mock_proc
