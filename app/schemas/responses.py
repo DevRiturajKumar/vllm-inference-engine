@@ -55,6 +55,9 @@ class HealthResponse(BaseModel):
     gpu_name: Optional[str] = None
     vram_allocated_gb: Optional[float] = None
     vram_total_gb: Optional[float] = None
+    model_weights_gb: Optional[float] = None
+    kv_cache_paged_gb: Optional[float] = None
+    vram_free_gb: Optional[float] = None
     tunnel_url: Optional[str] = None
 
 class AdminResponse(BaseModel):

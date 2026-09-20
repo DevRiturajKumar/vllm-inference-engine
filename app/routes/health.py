@@ -1,3 +1,5 @@
+import re
+from typing import Optional
 import torch
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -6,6 +8,21 @@ from app.tunnel import get_cloudflare_url
 
 router = APIRouter(tags=["Health"])
 
+def estimate_model_weights_gb(model_id: Optional[str], quantization: Optional[str] = None) -> Optional[float]:
+    if not model_id:
+        return None
+    mid = model_id.lower()
+    quant = (quantization or "").lower()
+    is_4bit = "awq" in quant or "gptq" in quant or "4bit" in quant or "awq" in mid
+
+    match = re.search(r"(\d+(?:\.\d+)?)\s*b", mid)
+    if match:
+        params = float(match.group(1))
+        bytes_per_param = 0.58 if is_4bit else 2.05
+        return round((params * 1e9 * bytes_per_param) / (1024 ** 3), 2)
+
+    return 3.10
+
 @router.get("/health")
 async def health():
     vm = get_vllm_manager()
@@ -13,6 +30,9 @@ async def health():
     gpu_name = None
     vram_allocated = None
     vram_total = None
+    model_weights_gb = None
+    kv_cache_paged_gb = None
+    vram_free_gb = None
 
     if gpu_available:
         try:
@@ -48,9 +68,19 @@ async def health():
         except Exception:
             pass
 
+    if vram_total is not None and vram_allocated is not None:
+        vram_free_gb = max(round(vram_total - vram_allocated, 2), 0.0)
+
     if vm.is_loaded():
         status_text = "OK"
         loaded_model = vm.model_id
+        if vram_allocated is not None:
+            quant = vm.active_config.get("quantization") if vm.active_config else None
+            weights = estimate_model_weights_gb(loaded_model, quant)
+            if weights is not None:
+                weights = min(weights, vram_allocated)
+                model_weights_gb = weights
+                kv_cache_paged_gb = max(round(vram_allocated - weights, 2), 0.0)
     else:
         status_text = "READY_NO_MODEL"
         loaded_model = None
@@ -62,5 +92,8 @@ async def health():
         "gpu_name": gpu_name,
         "vram_allocated_gb": vram_allocated,
         "vram_total_gb": vram_total,
+        "model_weights_gb": model_weights_gb,
+        "kv_cache_paged_gb": kv_cache_paged_gb,
+        "vram_free_gb": vram_free_gb,
         "tunnel_url": get_cloudflare_url(),
     })

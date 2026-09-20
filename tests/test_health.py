@@ -41,3 +41,6 @@ def test_health_loaded_with_gpu():
         assert data["gpu_name"] == "Tesla T4"
         assert data["vram_allocated_gb"] == 5.0
         assert data["vram_total_gb"] == 16.0
+        assert data["model_weights_gb"] is not None
+        assert data["kv_cache_paged_gb"] is not None
+        assert data["vram_free_gb"] == 11.0
