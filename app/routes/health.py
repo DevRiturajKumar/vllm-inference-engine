@@ -2,6 +2,7 @@ import torch
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from app.engine import get_vllm_manager
+from app.tunnel import get_cloudflare_url
 
 router = APIRouter(tags=["Health"])
 
@@ -61,4 +62,5 @@ async def health():
         "gpu_name": gpu_name,
         "vram_allocated_gb": vram_allocated,
         "vram_total_gb": vram_total,
+        "tunnel_url": get_cloudflare_url(),
     })

@@ -7,7 +7,7 @@ def test_default_config_values():
     assert settings.HOST == "0.0.0.0"
     assert settings.PORT == 8006
     assert settings.LOG_LEVEL == "info"
-    assert settings.MODEL_ID == "Qwen/Qwen2.5-1.5B-Instruct"
+    assert settings.MODEL_ID is None
     assert settings.MODEL_REVISION == "main"
     assert settings.QUANTIZATION == "none"
     assert settings.DTYPE == "auto"
@@ -58,7 +58,7 @@ def test_fallback_toggle_defaults():
     assert s.ENABLE_FALLBACK_TRANSFORMERS_BACKEND is True
     assert s.ENABLE_PREFIX_CACHING is True
     assert s.ALLOW_CPU_FALLBACK is False
-    assert s.AUTO_LOAD_ON_STARTUP is True
+    assert s.AUTO_LOAD_ON_STARTUP is False
 
 def test_get_settings_cached():
     s1 = get_settings()

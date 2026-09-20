@@ -6,19 +6,19 @@ def test_fallback_defaults():
     assert s.ENABLE_FALLBACK_TRANSFORMERS_BACKEND is True
     assert s.ENABLE_PREFIX_CACHING is True
     assert s.ALLOW_CPU_FALLBACK is False
-    assert s.AUTO_LOAD_ON_STARTUP is True
+    assert s.AUTO_LOAD_ON_STARTUP is False
 
 def test_fallback_env_overrides(monkeypatch):
     monkeypatch.setenv("ENABLE_FALLBACK_TRANSFORMERS_BACKEND", "false")
     monkeypatch.setenv("ENABLE_PREFIX_CACHING", "false")
     monkeypatch.setenv("ALLOW_CPU_FALLBACK", "true")
-    monkeypatch.setenv("AUTO_LOAD_ON_STARTUP", "false")
+    monkeypatch.setenv("AUTO_LOAD_ON_STARTUP", "true")
 
     s = Settings()
     assert s.ENABLE_FALLBACK_TRANSFORMERS_BACKEND is False
     assert s.ENABLE_PREFIX_CACHING is False
     assert s.ALLOW_CPU_FALLBACK is True
-    assert s.AUTO_LOAD_ON_STARTUP is False
+    assert s.AUTO_LOAD_ON_STARTUP is True
 
 def test_fallback_truthy_falsy_parsing():
     s_truthy = Settings(

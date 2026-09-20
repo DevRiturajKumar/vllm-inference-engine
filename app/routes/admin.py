@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Query
 from fastapi.responses import JSONResponse
@@ -5,6 +6,13 @@ from app.engine import get_vllm_manager
 from app.schemas.requests import LoadModelRequest
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+def sanitize_error_detail(err: Exception) -> str:
+    msg = str(err)
+    # Redact sensitive bearer or Hugging Face tokens
+    msg = re.sub(r"hf_[a-zA-Z0-9]{10,}", "hf_***REDACTED***", msg)
+    msg = re.sub(r"Bearer\s+[a-zA-Z0-9_\-\.]{10,}", "Bearer ***REDACTED***", msg)
+    return msg
 
 @router.post("/load-model")
 async def load_model(req: LoadModelRequest):
@@ -25,7 +33,7 @@ async def load_model(req: LoadModelRequest):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=sanitize_error_detail(e)
         )
 
 @router.get("/switch-model/{model_id:path}")
@@ -37,10 +45,23 @@ async def switch_model_get(
     enforce_eager: Optional[bool] = Query(None),
     hf_token: Optional[str] = Query(None),
 ):
+    clean_id = model_id.strip() if model_id else ""
+    if not clean_id or ".." in clean_id or clean_id.startswith(("/etc", "/root", "/var", "/bin", "/sbin", "/proc", "/sys", "/dev")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Path traversal or restricted system path detected in model_id"
+        )
+
+    if gpu_memory_utilization is not None and not (0.0 < gpu_memory_utilization <= 1.0):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="gpu_memory_utilization must be between 0.0 and 1.0"
+        )
+
     vm = get_vllm_manager()
     try:
         details = await vm.load_model(
-            model_id=model_id,
+            model_id=clean_id,
             quantization=quantization,
             max_model_len=max_model_len,
             gpu_memory_utilization=gpu_memory_utilization,
@@ -54,7 +75,7 @@ async def switch_model_get(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=sanitize_error_detail(e)
         )
 
 @router.get("/current-model")
@@ -82,5 +103,5 @@ async def unload_model():
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=sanitize_error_detail(e)
         )

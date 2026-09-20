@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "*"
 
-    MODEL_ID: str = "Qwen/Qwen2.5-1.5B-Instruct"
+    MODEL_ID: Optional[str] = None
     MODEL_REVISION: str = "main"
     QUANTIZATION: Optional[str] = "none"
     DTYPE: str = "auto"
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     ENABLE_FALLBACK_TRANSFORMERS_BACKEND: bool = True
     ENABLE_PREFIX_CACHING: bool = True
     ALLOW_CPU_FALLBACK: bool = False
-    AUTO_LOAD_ON_STARTUP: bool = True
+    AUTO_LOAD_ON_STARTUP: bool = False
 
     DEFAULT_MAX_TOKENS: int = 512
     DEFAULT_TEMPERATURE: float = 0.7
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     NGROK_AUTHTOKEN: Optional[str] = None
     NGROK_DOMAIN: Optional[str] = None
 
-    @field_validator("HF_TOKEN", "CACHE_DIR", "CLOUDFLARE_TUNNEL_TOKEN", "NGROK_AUTHTOKEN", "NGROK_DOMAIN", mode="before")
+    @field_validator("MODEL_ID", "HF_TOKEN", "CACHE_DIR", "CLOUDFLARE_TUNNEL_TOKEN", "NGROK_AUTHTOKEN", "NGROK_DOMAIN", mode="before")
     @classmethod
     def empty_string_to_none(cls, v):
         if isinstance(v, str) and not v.strip():
