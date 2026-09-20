@@ -71,6 +71,10 @@ if [ -f ".env" ]; then
     set +a
 fi
 
+if ! grep -q "inference-engine" /etc/hosts; then
+    echo "127.0.0.1 inference-engine" >> /etc/hosts || true
+fi
+
 if ! command -v cloudflared &> /dev/null; then
     curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
     dpkg -i /tmp/cloudflared.deb || apt-get install -f -y
