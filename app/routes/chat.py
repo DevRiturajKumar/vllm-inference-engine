@@ -59,11 +59,18 @@ async def chat_completions(req: ChatCompletionRequest):
     else:
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages) + "\nassistant:"
 
+    prompt_has_thinking_open = bool(
+        prompt.rstrip().endswith("<think>") or prompt.rstrip().endswith("<thinking>")
+    )
+
     if req.stream:
         async def stream_generator():
             try:
                 results_generator = vm.engine.generate(prompt, sampling_params, req_id)
-                stream_parser = StreamingThinkingParser(enable_thinking=enable_thinking)
+                stream_parser = StreamingThinkingParser(
+                    enable_thinking=enable_thinking,
+                    prompt_has_thinking_open=prompt_has_thinking_open,
+                )
 
                 yield f"data: {json.dumps({'id': req_id, 'object': 'chat.completion.chunk', 'created': created_ts, 'model': vm.model_id, 'choices': [{'index': 0, 'delta': {'role': 'assistant', 'content': ''}, 'finish_reason': None}]})}\n\n"
 
@@ -115,10 +122,18 @@ async def chat_completions(req: ChatCompletionRequest):
     completion_tokens = len(final_output.outputs[0].token_ids) if final_output and final_output.outputs and hasattr(final_output.outputs[0], "token_ids") and final_output.outputs[0].token_ids else len(generated_text.split())
     finish_reason = final_output.outputs[0].finish_reason if final_output and final_output.outputs and hasattr(final_output.outputs[0], "finish_reason") else "stop"
 
-    raw_reasoning, final_content = parse_thinking_content(generated_text)
+    raw_reasoning, parsed_content = parse_thinking_content(generated_text)
     if not enable_thinking:
         reasoning_val = None
+        final_content = parsed_content
     else:
+        if prompt_has_thinking_open and ("</think>" in generated_text or "</thinking>" in generated_text):
+            raw_reasoning, final_content = parse_thinking_content("<think>" + generated_text)
+        elif prompt_has_thinking_open and "<think>" not in generated_text and "<thinking>" not in generated_text:
+            raw_reasoning = generated_text.strip()
+            final_content = ""
+        else:
+            raw_reasoning, final_content = raw_reasoning, parsed_content
         reasoning_val = raw_reasoning
 
     msg_dict = {

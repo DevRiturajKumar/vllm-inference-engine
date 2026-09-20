@@ -57,6 +57,27 @@ def test_streaming_thinking_parser_enabled():
     assert len(events3) == 1
     assert events3[0] == {"content": " world"}
 
+def test_streaming_thinking_parser_standard_model_not_trapped():
+    # Model like Qwen 2.5 generating direct output without <think> tags
+    parser = StreamingThinkingParser(enable_thinking=True, prompt_has_thinking_open=False)
+    events1 = parser.process("Hello! ")
+    assert len(events1) == 1
+    assert events1[0] == {"content": "Hello! "}
+
+    events2 = parser.process("Hello! How can I help you?")
+    assert len(events2) == 1
+    assert events2[0] == {"content": "How can I help you?"}
+
+def test_streaming_thinking_parser_prefilled_prompt():
+    # Prompt prefilled with <think>, so generated text starts in reasoning
+    parser = StreamingThinkingParser(enable_thinking=True, prompt_has_thinking_open=True)
+    events1 = parser.process("Calculating step 1... ")
+    assert len(events1) == 1
+    assert events1[0] == {"reasoning": "Calculating step 1... "}
+
+    events2 = parser.process("Calculating step 1... </think>\nAnswer is 42.")
+    assert any("content" in e for e in events2)
+
 def test_streaming_thinking_parser_disabled():
     parser = StreamingThinkingParser(enable_thinking=False)
     events = parser.process("Normal response here")
