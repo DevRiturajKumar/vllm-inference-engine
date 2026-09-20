@@ -14,6 +14,26 @@ from app.thinking import (
 
 router = APIRouter(tags=["Inference"])
 
+def normalize_messages_for_template(messages: list) -> list:
+    if not messages:
+        return messages
+    merged = []
+    system_content = ""
+    for m in messages:
+        if m.get("role") == "system":
+            system_content += m.get("content", "") + "\n\n"
+        elif m.get("role") == "user":
+            if system_content:
+                merged.append({"role": "user", "content": system_content + m.get("content", "")})
+                system_content = ""
+            else:
+                merged.append(m)
+        else:
+            merged.append(m)
+    if system_content:
+        merged.append({"role": "user", "content": system_content.strip()})
+    return merged
+
 @router.post("/v1/chat/completions")
 async def chat_completions(req: ChatCompletionRequest):
     vm = get_vllm_manager()
@@ -34,10 +54,25 @@ async def chat_completions(req: ChatCompletionRequest):
     req_data = req.model_dump()
     req_id = f"chatcmpl-{uuid.uuid4()}"
     created_ts = int(time.time())
+
+    # Protect against multi-turn transcript hallucination
+    chat_stops = ["\nuser:", "\nUser:", "\n[INST]"]
+    if req_data.get("stop"):
+        existing_stops = [req_data["stop"]] if isinstance(req_data["stop"], str) else list(req_data["stop"])
+        for s in chat_stops:
+            if s not in existing_stops:
+                existing_stops.append(s)
+        req_data["stop"] = existing_stops
+    else:
+        req_data["stop"] = chat_stops
+
     sampling_params = vm.build_sampling_params(req_data)
 
     messages = [{"role": m.role, "content": m.content} for m in req.messages]
+    prompt = None
+
     if hasattr(vm.tokenizer, "apply_chat_template") and callable(vm.tokenizer.apply_chat_template):
+        # 1. Try with enable_thinking
         try:
             prompt = vm.tokenizer.apply_chat_template(
                 messages,
@@ -45,7 +80,11 @@ async def chat_completions(req: ChatCompletionRequest):
                 add_generation_prompt=True,
                 enable_thinking=enable_thinking,
             )
-        except TypeError:
+        except (TypeError, Exception):
+            pass
+
+        # 2. Try standard apply_chat_template
+        if prompt is None:
             try:
                 prompt = vm.tokenizer.apply_chat_template(
                     messages,
@@ -53,10 +92,21 @@ async def chat_completions(req: ChatCompletionRequest):
                     add_generation_prompt=True,
                 )
             except Exception:
-                prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages) + "\nassistant:"
-        except Exception:
-            prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages) + "\nassistant:"
-    else:
+                pass
+
+        # 3. Try with normalized/merged system message (for Mistral and Gemma models that reject system role)
+        if prompt is None:
+            try:
+                merged_msgs = normalize_messages_for_template(messages)
+                prompt = vm.tokenizer.apply_chat_template(
+                    merged_msgs,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            except Exception:
+                pass
+
+    if prompt is None:
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages) + "\nassistant:"
 
     prompt_has_thinking_open = bool(
