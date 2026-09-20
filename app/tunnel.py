@@ -98,6 +98,14 @@ def start_cloudflare_quick_tunnel(
     _cf_state.process = proc
     _cf_state.url = url
     _cf_state.mode = "quick"
+
+    if url:
+        try:
+            with open("tunnel_url.txt", "w", encoding="utf-8") as f:
+                f.write(f"{url}\n")
+        except Exception:
+            pass
+
     return proc, url
 
 def start_cloudflare_tunnel(token: Optional[str] = None) -> Optional[subprocess.Popen]:

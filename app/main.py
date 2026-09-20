@@ -87,6 +87,11 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(admin.router)
 
+    # Convenience alias in case client appends /docs to base URL
+    @app.get("/docs/health", include_in_schema=False)
+    async def docs_health():
+        return await health.health()
+
     @app.get("/")
     async def root(request: Request):
         tunnel_url = getattr(request.app.state, "tunnel_url", None) or get_cloudflare_url()

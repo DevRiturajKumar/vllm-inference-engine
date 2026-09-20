@@ -156,7 +156,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# Cloudflare Tunnel Configuration
+# Ensure cloudflared binary is installed if tunnel is enabled
 if [ "${CLOUDFLARE_TUNNEL_ENABLED:-true}" != "false" ]; then
     if ! command -v cloudflared &> /dev/null; then
         echo "Installing cloudflared binary..."
@@ -164,47 +164,10 @@ if [ "${CLOUDFLARE_TUNNEL_ENABLED:-true}" != "false" ]; then
         dpkg -i /tmp/cloudflared.deb || apt-get install -f -y
         rm -f /tmp/cloudflared.deb
     fi
-
     pkill -f "cloudflared tunnel" 2>/dev/null || true
-
-    if [ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]; then
-        echo "Starting Cloudflare Named Tunnel..."
-        nohup cloudflared tunnel run --token "$CLOUDFLARE_TUNNEL_TOKEN" > cloudflared.log 2>&1 &
-        sleep 2
-    else
-        echo "Starting Cloudflare Quick Tunnel (trycloudflare.com) on port ${PORT:-8006}..."
-        nohup cloudflared tunnel --url "http://127.0.0.1:${PORT:-8006}" --no-autoupdate > cloudflared.log 2>&1 &
-        
-        TUNNEL_URL=""
-        TIMEOUT=30
-        ELAPSED=0
-        while [ $ELAPSED -lt $TIMEOUT ]; do
-            if [ -f cloudflared.log ]; then
-                TUNNEL_URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' cloudflared.log | grep -v 'https://api\.trycloudflare\.com' | head -n 1 || true)
-                if [ -n "$TUNNEL_URL" ]; then
-                    break
-                fi
-            fi
-            sleep 1
-            ELAPSED=$((ELAPSED + 1))
-        done
-
-        if [ -n "$TUNNEL_URL" ]; then
-            echo ""
-            echo "=================================================================="
-            echo " 🌐 Cloudflare Quick Tunnel Live: $TUNNEL_URL"
-            echo " 📚 Swagger UI Documentation:    $TUNNEL_URL/docs"
-            echo " 💻 Local Endpoint:              http://localhost:${PORT:-8006}"
-            echo "=================================================================="
-            echo ""
-            echo "$TUNNEL_URL" > tunnel_url.txt
-        else
-            echo "Notice: Cloudflare tunnel started. Check cloudflared.log for live URL."
-        fi
-    fi
 else
     echo "CLOUDFLARE_TUNNEL_ENABLED=false: Serving strictly on localhost (tunnel disabled)."
 fi
 
-# Run FastAPI vLLM Engine
+# Run FastAPI vLLM Engine (manages the single live tunnel and outputs the active URL)
 exec python3 -m uvicorn app.main:app --app-dir "$(pwd)" --host "${HOST:-0.0.0.0}" --port "${PORT:-8006}"
