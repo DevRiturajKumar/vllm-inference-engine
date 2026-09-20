@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+cloudflared.log
+cloudflared.deb
+prompt.md
+run_in _colab.txt
+run_in_colab.txt
