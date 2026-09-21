@@ -73,6 +73,7 @@ class VLLMManager:
         gpu_memory_utilization: Optional[float] = None,
         enforce_eager: Optional[bool] = None,
         hf_token: Optional[str] = None,
+        dtype: Optional[str] = None,
     ) -> Dict[str, Any]:
         async with self._lock:
             settings = get_settings()
@@ -91,11 +92,24 @@ class VLLMManager:
                 gpu_mem = gpu_memory_utilization or settings.GPU_MEMORY_UTILIZATION
                 eager = enforce_eager if enforce_eager is not None else settings.ENFORCE_EAGER
 
+                # Smart dtype resolution:
+                # If dtype is "auto" (or None) and GPU does not support bfloat16 (like Tesla T4),
+                # resolve to "float16" to avoid vLLM upcasting to float32 (which crashes with 80KB SRAM limit on Gemma 2).
+                # On A100/L4, torch.cuda.is_bf16_supported() is True, so it keeps "auto" / "bfloat16".
+                target_dtype = dtype or settings.DTYPE
+                if target_dtype in ("auto", None) and torch.cuda.is_available():
+                    if hasattr(torch.cuda, "is_bf16_supported") and not torch.cuda.is_bf16_supported():
+                        resolved_dtype = "float16"
+                    else:
+                        resolved_dtype = "auto"
+                else:
+                    resolved_dtype = target_dtype or "auto"
+
                 engine_args = AsyncEngineArgs(
                     model=model_id,
                     revision=settings.MODEL_REVISION,
                     quantization=quant,
-                    dtype=settings.DTYPE,
+                    dtype=resolved_dtype,
                     max_model_len=max_len,
                     gpu_memory_utilization=gpu_mem,
                     enforce_eager=eager,
@@ -120,6 +134,7 @@ class VLLMManager:
                 self.active_config = {
                     "model_id": model_id,
                     "quantization": quant or "none",
+                    "dtype": resolved_dtype,
                     "max_model_len": max_len,
                     "gpu_memory_utilization": gpu_mem,
                     "enforce_eager": eager,

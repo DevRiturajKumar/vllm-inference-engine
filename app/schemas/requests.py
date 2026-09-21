@@ -87,10 +87,24 @@ class CompletionRequest(BaseModel):
 class LoadModelRequest(BaseModel):
     model_id: str
     quantization: Optional[str] = None
+    dtype: Optional[str] = None
     max_model_len: Optional[int] = Field(None, ge=1, le=131072)
     gpu_memory_utilization: Optional[float] = Field(None, gt=0.0, le=1.0)
     enforce_eager: Optional[bool] = None
     hf_token: Optional[str] = None
+
+    @field_validator("dtype")
+    @classmethod
+    def validate_dtype(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        clean = v.strip().lower()
+        if not clean:
+            return "auto"
+        allowed = {"auto", "half", "float16", "bfloat16", "float", "float32"}
+        if clean not in allowed:
+            raise ValueError(f"Invalid dtype '{v}'. Allowed: {sorted(allowed)}")
+        return clean
 
     @field_validator("model_id")
     @classmethod

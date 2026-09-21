@@ -73,3 +73,43 @@ async def test_load_model_with_mock():
         assert m.is_loaded() is True
         assert m.engine is mock_engine
         assert m.tokenizer is mock_tokenizer
+
+@pytest.mark.anyio
+async def test_smart_dtype_resolution_non_bf16():
+    m = get_vllm_manager()
+    mock_engine = MagicMock()
+    mock_tokenizer = MagicMock()
+
+    with patch("app.engine.AsyncEngineArgs") as mock_args_cls, \
+         patch("app.engine.AsyncLLMEngine") as mock_engine_cls, \
+         patch("app.engine.AutoTokenizer.from_pretrained", return_value=mock_tokenizer), \
+         patch("torch.cuda.is_available", return_value=True), \
+         patch("torch.cuda.is_bf16_supported", return_value=False):
+
+        mock_engine_cls.from_engine_args.return_value = mock_engine
+
+        result = await m.load_model("google/gemma-2-2b-it", dtype="auto")
+        # On non-BF16 GPUs (T4), auto must resolve to float16 to prevent float32 SRAM crash
+        assert result["dtype"] == "float16"
+        _, kwargs = mock_args_cls.call_args
+        assert kwargs.get("dtype") == "float16"
+
+@pytest.mark.anyio
+async def test_smart_dtype_resolution_bf16():
+    m = get_vllm_manager()
+    mock_engine = MagicMock()
+    mock_tokenizer = MagicMock()
+
+    with patch("app.engine.AsyncEngineArgs") as mock_args_cls, \
+         patch("app.engine.AsyncLLMEngine") as mock_engine_cls, \
+         patch("app.engine.AutoTokenizer.from_pretrained", return_value=mock_tokenizer), \
+         patch("torch.cuda.is_available", return_value=True), \
+         patch("torch.cuda.is_bf16_supported", return_value=True):
+
+        mock_engine_cls.from_engine_args.return_value = mock_engine
+
+        result = await m.load_model("google/gemma-2-2b-it", dtype="auto")
+        # On BF16 GPUs (A100 / L4), auto remains auto so native bfloat16 is utilized
+        assert result["dtype"] == "auto"
+        _, kwargs = mock_args_cls.call_args
+        assert kwargs.get("dtype") == "auto"

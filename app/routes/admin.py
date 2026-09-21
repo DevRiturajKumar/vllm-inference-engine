@@ -25,6 +25,7 @@ async def load_model(req: LoadModelRequest):
             gpu_memory_utilization=req.gpu_memory_utilization,
             enforce_eager=req.enforce_eager,
             hf_token=req.hf_token,
+            dtype=req.dtype,
         )
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -40,6 +41,7 @@ async def load_model(req: LoadModelRequest):
 async def switch_model_get(
     model_id: str,
     quantization: Optional[str] = Query(None),
+    dtype: Optional[str] = Query(None),
     max_model_len: Optional[int] = Query(None),
     gpu_memory_utilization: Optional[float] = Query(None),
     enforce_eager: Optional[bool] = Query(None),
@@ -67,6 +69,7 @@ async def switch_model_get(
             gpu_memory_utilization=gpu_memory_utilization,
             enforce_eager=enforce_eager,
             hf_token=hf_token,
+            dtype=dtype,
         )
         return JSONResponse(
             status_code=status.HTTP_200_OK,
