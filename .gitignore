@@ -7,7 +7,6 @@ cloudflared.deb
 prompt.md
 run_in _colab.txt
 run_in_colab.txt
-frontend/
 run_colab.txt
 limitations.md
 SECURITY.md

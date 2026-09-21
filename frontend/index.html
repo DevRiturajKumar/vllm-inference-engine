@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z'/></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#090d16" />
+    <meta name="description" content="Modern, high-performance web interface for vLLM FastAPI Inference Engine with streaming and live GPU monitoring" />
+    <title>vLLM Studio</title>
+    <!-- Prevent theme FOUC -->
+    <script>
+      (function() {
+        try {
+          const theme = localStorage.getItem('vllm_theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (theme === 'dark' || (!theme && prefersDark) || theme === null) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="h-full bg-slate-50 text-slate-900 dark:bg-[#0b0f19] dark:text-slate-100 antialiased font-sans selection:bg-brand-500 selection:text-white transition-colors duration-200">
+    <div id="root" class="h-full flex flex-col"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

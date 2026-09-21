@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    border-color: theme('colors.slate.200');
+  }
+  .dark * {
+    border-color: theme('colors.slate.800');
+  }
+
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.9);
+}
+
+/* Mobile Safe Area Inset helpers */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Markdown formatting in chat */
+.prose-chat pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0.5rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .prose-chat pre {
+  background: #090d16;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.prose-chat code {
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+  background-color: rgba(148, 163, 184, 0.15);
+}
+
+.dark .prose-chat code {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.prose-chat pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+.prose-chat p {
+  margin-bottom: 0.625rem;
+}
+
+.prose-chat p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-chat ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.625rem;
+}
+
+.prose-chat ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.625rem;
+}
+
+.prose-chat blockquote {
+  border-left: 3px solid #22c55e;
+  padding-left: 0.75rem;
+  margin: 0.5rem 0;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* Blinking cursor for streaming */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.streaming-cursor::after {
+  content: '▋';
+  display: inline-block;
+  color: #22c55e;
+  animation: blink 0.9s infinite;
+  margin-left: 2px;
+  font-size: 0.9em;
+  vertical-align: baseline;
+}
