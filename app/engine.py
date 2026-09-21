@@ -92,6 +92,18 @@ class VLLMManager:
                 gpu_mem = gpu_memory_utilization or settings.GPU_MEMORY_UTILIZATION
                 eager = enforce_eager if enforce_eager is not None else settings.ENFORCE_EAGER
 
+                # Hardware compatibility check for Gemma 2 / Gemma 3 on Turing GPUs (sm_75)
+                # Gemma 2 and Gemma 3 have head_dim=256 and are blacklisted from float16 in vLLM.
+                # On sm_75 Turing (T4), fallback to float32 causes an unrecoverable 80KB shared memory crash.
+                mid_lower = model_id.lower()
+                if any(k in mid_lower for k in ("gemma-2", "gemma-3", "gemma2", "gemma3")) and torch.cuda.is_available():
+                    if hasattr(torch.cuda, "is_bf16_supported") and not torch.cuda.is_bf16_supported():
+                        raise RuntimeError(
+                            f"Model '{model_id}' requires native bfloat16 hardware and >64KB shared memory (SRAM), "
+                            "which is supported on NVIDIA L4, A100, and H100 GPUs, but incompatible with Tesla T4 (Turing sm_75). "
+                            "Please use Gemma 1 (e.g. 'google/gemma-2b-it'), Qwen 2.5, or run on an L4 / A100 GPU."
+                        )
+
                 # Smart dtype resolution:
                 # If dtype is "auto" (or None) and GPU does not support bfloat16 (like Tesla T4),
                 # resolve to "float16" to avoid vLLM upcasting to float32 (which crashes with 80KB SRAM limit on Gemma 2).

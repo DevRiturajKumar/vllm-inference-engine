@@ -88,11 +88,20 @@ async def test_smart_dtype_resolution_non_bf16():
 
         mock_engine_cls.from_engine_args.return_value = mock_engine
 
-        result = await m.load_model("google/gemma-2-2b-it", dtype="auto")
+        result = await m.load_model("Qwen/Qwen2.5-1.5B-Instruct", dtype="auto")
         # On non-BF16 GPUs (T4), auto must resolve to float16 to prevent float32 SRAM crash
         assert result["dtype"] == "float16"
         _, kwargs = mock_args_cls.call_args
         assert kwargs.get("dtype") == "float16"
+
+@pytest.mark.anyio
+async def test_gemma_turing_guard():
+    m = get_vllm_manager()
+    with patch("torch.cuda.is_available", return_value=True), \
+         patch("torch.cuda.is_bf16_supported", return_value=False):
+        with pytest.raises(RuntimeError) as exc_info:
+            await m.load_model("google/gemma-2-2b-it", dtype="auto")
+        assert "requires native bfloat16 hardware and >64KB shared memory" in str(exc_info.value)
 
 @pytest.mark.anyio
 async def test_smart_dtype_resolution_bf16():
