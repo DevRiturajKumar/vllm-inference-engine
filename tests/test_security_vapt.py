@@ -186,3 +186,82 @@ def test_thinking_parser_redos_safety():
     elapsed = time.perf_counter() - start_time
     assert elapsed < 0.2, f"Regex took too long: {elapsed}s (potential ReDoS)"
     assert reasoning is not None or content is not None
+
+# ==============================================================================
+# 7. CORS Security & Credential Reflection Audit
+# ==============================================================================
+
+def test_cors_origin_reflection_behavior():
+    origin = "https://malicious-site.example"
+    response = client.options(
+        "/admin/current-model",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+        }
+    )
+    # Audits CORS middleware response headers
+    assert response.status_code == 200
+    assert "access-control-allow-origin" in response.headers
+
+# ==============================================================================
+# 8. Unauthenticated Access & State Mutation Audit (VAPT Probes)
+# ==============================================================================
+
+def test_unauthenticated_admin_endpoints_accessible():
+    # Probes that admin plane currently responds without API key / Bearer token
+    res = client.get("/admin/current-model")
+    assert res.status_code == 200
+    assert "is_loaded" in res.json()
+
+def test_unauthenticated_unload_model_accessible():
+    # Demonstrates that unauthenticated callers can trigger model unloads
+    res = client.post("/admin/unload-model")
+    assert res.status_code == 200
+    assert res.json()["status"] == "UNLOADED"
+
+def test_csrf_state_change_via_get_unload_accessible():
+    # Demonstrates that unload endpoint is reachable via GET (CSRF vector)
+    res = client.get("/admin/unload-model")
+    assert res.status_code == 200
+    assert res.json()["status"] == "UNLOADED"
+
+# ==============================================================================
+# 9. Hardware & System Information Disclosure Probe
+# ==============================================================================
+
+def test_unauthenticated_health_reveals_topology():
+    res = client.get("/health")
+    assert res.status_code == 200
+    data = res.json()
+    assert "status" in data
+    assert "gpu_available" in data
+    assert "vram_allocated_gb" in data
+    assert "vram_total_gb" in data
+
+# ==============================================================================
+# 10. Advanced Input Boundary & NaN/Inf Injection Tests
+# ==============================================================================
+
+def test_chat_nan_temperature_rejected():
+    from app.schemas.requests import ChatCompletionRequest
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        ChatCompletionRequest(
+            messages=[{"role": "user", "content": "hello"}],
+            temperature=float("nan")
+        )
+
+    with pytest.raises(ValidationError):
+        ChatCompletionRequest(
+            messages=[{"role": "user", "content": "hello"}],
+            temperature=float("inf")
+        )
+
+def test_load_model_invalid_dtype_rejected():
+    res = client.post("/admin/load-model", json={
+        "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "dtype": "malicious_script_injection"
+    })
+    assert res.status_code == 422
+    assert "Invalid dtype" in str(res.json())
