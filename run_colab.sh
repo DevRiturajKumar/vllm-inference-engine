@@ -29,6 +29,16 @@ REPO_URL="${REPO_URL:-}"
 if [ ! -f "app/main.py" ]; then
     if [ -d "$PROJECT_DIR" ] && [ -f "$PROJECT_DIR/app/main.py" ]; then
         cd "$PROJECT_DIR"
+        if [ -d ".git" ]; then
+            echo "Pulling latest changes in $PROJECT_DIR..."
+            if [ -n "$GITHUB_TOKEN" ] && [ -n "$REPO_URL" ]; then
+                CLEAN_REPO="${REPO_URL#*@}"
+                CLEAN_REPO="${CLEAN_REPO#https://}"
+                CLEAN_REPO="${CLEAN_REPO#http://}"
+                git remote set-url origin "https://${GITHUB_TOKEN}@${CLEAN_REPO}" 2>/dev/null || true
+            fi
+            git pull || true
+        fi
     elif [ -n "$REPO_URL" ]; then
         if [ -n "$GITHUB_TOKEN" ]; then
             CLEAN_REPO="${REPO_URL#*@}"
@@ -48,6 +58,18 @@ if [ ! -f "app/main.py" ]; then
             fi
             cd "$PROJECT_DIR"
         fi
+    fi
+else
+    # Already inside repository directory, update to latest code
+    if [ -d ".git" ]; then
+        echo "Pulling latest changes..."
+        if [ -n "$GITHUB_TOKEN" ] && [ -n "$REPO_URL" ]; then
+            CLEAN_REPO="${REPO_URL#*@}"
+            CLEAN_REPO="${CLEAN_REPO#https://}"
+            CLEAN_REPO="${CLEAN_REPO#http://}"
+            git remote set-url origin "https://${GITHUB_TOKEN}@${CLEAN_REPO}" 2>/dev/null || true
+        fi
+        git pull || true
     fi
 fi
 
