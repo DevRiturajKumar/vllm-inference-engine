@@ -42,9 +42,9 @@ if [ ! -f "app/main.py" ]; then
             git clone "$REPO_URL" "$PROJECT_DIR" || true
         fi
         if [ -d "$PROJECT_DIR" ] && [ -f "$PROJECT_DIR/app/main.py" ]; then
-            # Copy top-level .env into cloned directory if not present
-            if [ -f ".env" ] && [ ! -f "$PROJECT_DIR/.env" ]; then
-                cp .env "$PROJECT_DIR/.env"
+            # Ensure top-level .env from Colab always propagates into cloned directory
+            if [ -f ".env" ]; then
+                cp -f .env "$PROJECT_DIR/.env"
             fi
             cd "$PROJECT_DIR"
         fi
@@ -130,7 +130,7 @@ DEFAULT_TEMPERATURE=0.7
 DEFAULT_TOP_P=0.9
 DEFAULT_TOP_K=50
 DEFAULT_REPETITION_PENALTY=1.05
-DEFAULT_ENABLE_THINKING=true
+DEFAULT_ENABLE_THINKING=false
 
 CLOUDFLARE_TUNNEL_ENABLED=true
 CLOUDFLARE_TUNNEL_TOKEN=
