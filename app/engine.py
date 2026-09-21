@@ -55,6 +55,8 @@ class VLLMManager:
         self.tokenizer: Optional[Any] = None
         self.model_id: Optional[str] = None
         self.active_config: Dict[str, Any] = {}
+        self.is_loading: bool = False
+        self.loading_model_id: Optional[str] = None
 
     @classmethod
     def reset(cls):
@@ -78,45 +80,54 @@ class VLLMManager:
             if self.is_loaded():
                 await self._unload_internal()
 
-            quant = quantization or settings.QUANTIZATION
-            quant = None if quant in ("none", "", None) else quant
-            token = hf_token or settings.HF_TOKEN
-            max_len = max_model_len or settings.MAX_MODEL_LEN
-            gpu_mem = gpu_memory_utilization or settings.GPU_MEMORY_UTILIZATION
-            eager = enforce_eager if enforce_eager is not None else settings.ENFORCE_EAGER
+            self.is_loading = True
+            self.loading_model_id = model_id
 
-            engine_args = AsyncEngineArgs(
-                model=model_id,
-                revision=settings.MODEL_REVISION,
-                quantization=quant,
-                dtype=settings.DTYPE,
-                max_model_len=max_len,
-                gpu_memory_utilization=gpu_mem,
-                enforce_eager=eager,
-                tensor_parallel_size=settings.TENSOR_PARALLEL_SIZE,
-                trust_remote_code=settings.TRUST_REMOTE_CODE,
-                enable_prefix_caching=settings.ENABLE_PREFIX_CACHING,
-                download_dir=settings.CACHE_DIR,
-            )
+            try:
+                quant = quantization or settings.QUANTIZATION
+                quant = None if quant in ("none", "", None) else quant
+                token = hf_token or settings.HF_TOKEN
+                max_len = max_model_len or settings.MAX_MODEL_LEN
+                gpu_mem = gpu_memory_utilization or settings.GPU_MEMORY_UTILIZATION
+                eager = enforce_eager if enforce_eager is not None else settings.ENFORCE_EAGER
 
-            engine = AsyncLLMEngine.from_engine_args(engine_args)
-            tokenizer = AutoTokenizer.from_pretrained(
-                model_id,
-                trust_remote_code=settings.TRUST_REMOTE_CODE,
-                token=token,
-            )
+                engine_args = AsyncEngineArgs(
+                    model=model_id,
+                    revision=settings.MODEL_REVISION,
+                    quantization=quant,
+                    dtype=settings.DTYPE,
+                    max_model_len=max_len,
+                    gpu_memory_utilization=gpu_mem,
+                    enforce_eager=eager,
+                    tensor_parallel_size=settings.TENSOR_PARALLEL_SIZE,
+                    trust_remote_code=settings.TRUST_REMOTE_CODE,
+                    enable_prefix_caching=settings.ENABLE_PREFIX_CACHING,
+                    download_dir=settings.CACHE_DIR,
+                )
 
-            self.engine = engine
-            self.tokenizer = tokenizer
-            self.model_id = model_id
-            self.active_config = {
-                "model_id": model_id,
-                "quantization": quant or "none",
-                "max_model_len": max_len,
-                "gpu_memory_utilization": gpu_mem,
-                "enforce_eager": eager,
-            }
-            return self.active_config
+                # Offload heavy/blocking engine instantiation & tokenizer download to worker thread
+                engine = await asyncio.to_thread(AsyncLLMEngine.from_engine_args, engine_args)
+                tokenizer = await asyncio.to_thread(
+                    AutoTokenizer.from_pretrained,
+                    model_id,
+                    trust_remote_code=settings.TRUST_REMOTE_CODE,
+                    token=token,
+                )
+
+                self.engine = engine
+                self.tokenizer = tokenizer
+                self.model_id = model_id
+                self.active_config = {
+                    "model_id": model_id,
+                    "quantization": quant or "none",
+                    "max_model_len": max_len,
+                    "gpu_memory_utilization": gpu_mem,
+                    "enforce_eager": eager,
+                }
+                return self.active_config
+            finally:
+                self.is_loading = False
+                self.loading_model_id = None
 
     async def unload_model(self) -> Dict[str, Any]:
         async with self._lock:

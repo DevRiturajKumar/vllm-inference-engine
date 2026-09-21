@@ -71,7 +71,10 @@ async def health():
     if vram_total is not None and vram_allocated is not None:
         vram_free_gb = max(round(vram_total - vram_allocated, 2), 0.0)
 
-    if vm.is_loaded():
+    if vm.is_loading:
+        status_text = "LOADING"
+        loaded_model = vm.loading_model_id
+    elif vm.is_loaded():
         status_text = "OK"
         loaded_model = vm.model_id
         if vram_allocated is not None:
