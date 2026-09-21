@@ -49,7 +49,7 @@ async def chat_completions(req: ChatCompletionRequest):
     if req_thinking is not None:
         enable_thinking = req_thinking
     else:
-        enable_thinking = is_thinking_model(vm.model_id) or settings.DEFAULT_ENABLE_THINKING
+        enable_thinking = settings.DEFAULT_ENABLE_THINKING
 
     req_data = req.model_dump()
     req_id = f"chatcmpl-{uuid.uuid4()}"
@@ -72,7 +72,7 @@ async def chat_completions(req: ChatCompletionRequest):
     prompt = None
 
     if hasattr(vm.tokenizer, "apply_chat_template") and callable(vm.tokenizer.apply_chat_template):
-        # 1. Try with enable_thinking
+        # 1. Try with enable_thinking at model/tokenizer level
         try:
             prompt = vm.tokenizer.apply_chat_template(
                 messages,
@@ -83,7 +83,7 @@ async def chat_completions(req: ChatCompletionRequest):
         except (TypeError, Exception):
             pass
 
-        # 2. Try standard apply_chat_template
+        # 2. Try standard apply_chat_template if model does not accept enable_thinking parameter
         if prompt is None:
             try:
                 prompt = vm.tokenizer.apply_chat_template(
@@ -94,7 +94,7 @@ async def chat_completions(req: ChatCompletionRequest):
             except Exception:
                 pass
 
-        # 3. Try with normalized/merged system message (for Mistral and Gemma models that reject system role)
+        # 3. Try with normalized/merged system message (for models that reject system role like Mistral/Gemma)
         if prompt is None:
             try:
                 merged_msgs = normalize_messages_for_template(messages)
@@ -102,9 +102,17 @@ async def chat_completions(req: ChatCompletionRequest):
                     merged_msgs,
                     tokenize=False,
                     add_generation_prompt=True,
+                    enable_thinking=enable_thinking,
                 )
-            except Exception:
-                pass
+            except (TypeError, Exception):
+                try:
+                    prompt = vm.tokenizer.apply_chat_template(
+                        merged_msgs,
+                        tokenize=False,
+                        add_generation_prompt=True,
+                    )
+                except Exception:
+                    pass
 
     if prompt is None:
         prompt = "\n".join(f"{m['role']}: {m['content']}" for m in messages) + "\nassistant:"

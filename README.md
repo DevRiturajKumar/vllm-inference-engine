@@ -122,26 +122,26 @@ All models below have native, readymade support in vLLM. You can copy-paste any 
 | **Llama 3.2 1B AWQ** | `casperhansen/llama-3.2-1b-instruct-awq` | `awq` | 32,768 | ~3.5 GB | T4 / L4 / A100 |
 | **Llama 3.2 3B Instruct** | `meta-llama/Llama-3.2-3B-Instruct` | `none` | 16,384 | ~9.8 GB | T4 / L4 / A100 |
 | **Llama 3.2 3B AWQ** | `casperhansen/llama-3.2-3b-instruct-awq` | `awq` | 32,768 | ~5.8 GB | T4 / L4 / A100 |
-| **Llama 3.1 8B Instruct** | `meta-llama/Meta-Llama-3.1-8B-Instruct` | `none` | 8,192 | ~20.2 GB | L4 / A100 |
-| **Llama 3.1 8B AWQ (4-bit)** | `hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4` | `awq` | 8,192 | ~8.2 GB | T4 / L4 / A100 |
-| **Llama 3.1 70B AWQ** | `hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4`| `awq` | 8,192 | ~51.0 GB | A100-80GB |
-| **Llama 3.3 70B AWQ** | `casperhansen/llama-3.3-70b-instruct-awq` | `awq` | 8,192 | ~51.0 GB | A100-80GB |
+| **Llama 3.1 8B Instruct (Gated)** | `meta-llama/Meta-Llama-3.1-8B-Instruct` | `none` | 8,192 | ~20.2 GB | L4 / A100 |
+| **Llama 3.1 8B AWQ (Ungated)** | `hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4` | `awq` | 8,192 | ~8.2 GB | T4 / L4 / A100 |
+| **Llama 3.1 70B AWQ (Ungated)** | `hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4`| `awq` | 8,192 | ~51.0 GB | A100-80GB |
+| **Llama 3.3 70B AWQ (Ungated)** | `casperhansen/llama-3.3-70b-instruct-awq` | `awq` | 8,192 | ~51.0 GB | A100-80GB |
 
 ---
 
 ### 4. Google Gemma 2 & Gemma 3 Series
 
-*(Requires accepting Hugging Face license and supplying `HF_TOKEN`)*
+*(Official `google/*` models require accepting Hugging Face license and supplying `HF_TOKEN`)*
 
 | Model Name | Hugging Face Model ID | Quantization | Context | Min VRAM | Recommended GPU |
 |---|---|---|---|---|---|
 | **Gemma 2 2B Instruct** | `google/gemma-2-2b-it` | `none` | 8,192 | ~8.0 GB | T4 / L4 / A100 |
-| **Gemma 2 2B AWQ** | `TechxGenus/gemma-2b-it-AWQ` | `awq` | 8,192 | ~4.5 GB | T4 / L4 / A100 |
+| **Gemma 1 2B AWQ (Ungated)** | `TechxGenus/gemma-2b-it-AWQ` | `awq` | 8,192 | ~4.5 GB | T4 / L4 / A100 |
 | **Gemma 2 9B Instruct** | `google/gemma-2-9b-it` | `none` | 4,096 | ~21.5 GB | L4 / A100 |
-| **Gemma 2 9B AWQ** | `solidrust/gemma-2-9b-it-AWQ` | `awq` | 4,096 | ~11.0 GB | T4 (eager) / L4 / A100 |
-| **Gemma 2 27B AWQ** | `mbley/google-gemma-2-27b-it-AWQ` | `awq` | 4,096 | ~21.5 GB | L4 (eager) / A100 |
+| **Gemma 2 9B AWQ (Ungated)** | `solidrust/gemma-2-9b-it-AWQ` | `awq` | 4,096 | ~11.0 GB | T4 (eager) / L4 / A100 |
+| **Gemma 2 27B AWQ (Ungated)** | `mbley/google-gemma-2-27b-it-AWQ` | `awq` | 4,096 | ~21.5 GB | L4 (eager) / A100 |
 | **Gemma 3 1B Instruct** | `google/gemma-3-1b-it` | `none` | 32,768 | ~5.2 GB | T4 / L4 / A100 |
-| **Gemma 3 4B Instruct** | `google/gemma-3-4b-it` | `none` | 16,384 | ~13.5 GB | T4 (eager) / L4 / A100 |
+| **Gemma 3 4B Instruct (Vision)** | `google/gemma-3-4b-it` | `none` | 16,384 | ~13.5 GB | T4 (eager) / L4 / A100 |
 
 ---
 
@@ -152,7 +152,7 @@ All models below have native, readymade support in vLLM. You can copy-paste any 
 | **Mistral 7B v0.3 Instruct** | `mistralai/Mistral-7B-Instruct-v0.3` | `none` | 8,192 | ~19.0 GB | L4 / A100 |
 | **Mistral 7B v0.3 AWQ** | `TechxGenus/Mistral-7B-Instruct-v0.3-AWQ` | `awq` | 8,192 | ~7.2 GB | T4 / L4 / A100 |
 | **Mixtral 8x7B AWQ** | `TheBloke/Mixtral-8x7B-Instruct-v0.1-AWQ` | `awq` | 8,192 | ~34.0 GB | A100-40GB / A100-80GB |
-| **Ministral 3B Instruct** | `mistralai/Ministral-3-3B-Instruct-2512` | `none` | 16,384 | ~9.8 GB | T4 / L4 / A100 |
+| **Ministral 3B Instruct (FP8)** | `mistralai/Ministral-3-3B-Instruct-2512` | `fp8` | 16,384 | ~6.5 GB | T4 (eager) / L4 / A100 |
 | **Ministral 8B Instruct** | `mistralai/Ministral-8B-Instruct-2410` | `none` | 8,192 | ~20.5 GB | L4 / A100 |
 
 ---

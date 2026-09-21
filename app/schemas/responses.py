@@ -58,6 +58,7 @@ class HealthResponse(BaseModel):
     model_weights_gb: Optional[float] = None
     kv_cache_paged_gb: Optional[float] = None
     vram_free_gb: Optional[float] = None
+    default_enable_thinking: bool = True
     tunnel_url: Optional[str] = None
 
 class AdminResponse(BaseModel):

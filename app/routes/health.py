@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from app.config import get_settings
 from app.engine import get_vllm_manager
 from app.tunnel import get_cloudflare_url
 
@@ -88,6 +89,7 @@ async def health():
         status_text = "READY_NO_MODEL"
         loaded_model = None
 
+    settings = get_settings()
     return JSONResponse(content={
         "status": status_text,
         "loaded_model": loaded_model,
@@ -98,5 +100,6 @@ async def health():
         "model_weights_gb": model_weights_gb,
         "kv_cache_paged_gb": kv_cache_paged_gb,
         "vram_free_gb": vram_free_gb,
+        "default_enable_thinking": settings.DEFAULT_ENABLE_THINKING,
         "tunnel_url": get_cloudflare_url(),
     })

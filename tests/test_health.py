@@ -17,6 +17,7 @@ def test_health_unloaded():
     data = response.json()
     assert data["status"] == "READY_NO_MODEL"
     assert data["loaded_model"] is None
+    assert "default_enable_thinking" in data
 
 def test_health_loaded_with_gpu():
     vm = get_vllm_manager()

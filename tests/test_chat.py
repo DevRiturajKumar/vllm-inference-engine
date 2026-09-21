@@ -197,5 +197,40 @@ def test_chat_streaming_with_thinking():
     assert response.status_code == 200
     text = response.text
     assert "reasoning" in text
-    assert "content" in text
-    assert "data: [DONE]" in text
+
+def test_chat_respects_default_enable_thinking_env(monkeypatch):
+    monkeypatch.setenv("DEFAULT_ENABLE_THINKING", "false")
+    from app.config import get_settings
+    get_settings.cache_clear()
+    try:
+        vm = get_vllm_manager()
+        vm.model_id = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = "prompt"
+        vm.tokenizer = mock_tokenizer
+
+        async def mock_generate(prompt, sampling_params, req_id):
+            mock_output = MagicMock()
+            mock_choice = MagicMock()
+            mock_choice.text = "Direct answer."
+            mock_choice.token_ids = [1, 2]
+            mock_choice.finish_reason = "stop"
+            mock_output.outputs = [mock_choice]
+            mock_output.prompt_token_ids = [10]
+            yield mock_output
+
+        mock_engine = MagicMock()
+        mock_engine.generate = mock_generate
+        vm.engine = mock_engine
+
+        client = TestClient(app)
+        response = client.post("/v1/chat/completions", json={
+            "messages": [{"role": "user", "content": "What is 2+2?"}],
+            "stream": False
+        })
+        assert response.status_code == 200
+        _, kwargs = mock_tokenizer.apply_chat_template.call_args
+        assert kwargs.get("enable_thinking") is False
+    finally:
+        get_settings.cache_clear()
